@@ -1,5 +1,10 @@
 Release/
 Debug/
 .codelite/
+.clang/
 *.workspace
 *.project
+*.mk
+Makefile
+
+syscalltest/syscalltest.txt
