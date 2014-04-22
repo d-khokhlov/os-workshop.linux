@@ -5,7 +5,5 @@ Debug/
 *.workspace
 *.project
 *.mk
+*.txt
 Makefile
-
-syscalltest/syscalltest.txt
-babyshell/babyshell.txt
