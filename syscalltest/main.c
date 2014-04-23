@@ -9,6 +9,8 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
+#define BUFFER_SIZE 100
+
 void testProcessCalls() {
 
     printf( "parent: started\n" );
@@ -44,13 +46,12 @@ void testProcessCalls() {
 
 void testFileCalls() {
 
-    const int bufferSize = 100;
     char *filename = "input.txt";
 
     puts( "Введите строку:" );
 
-    char input[ bufferSize ];
-    fgets( input, bufferSize, stdin );
+    char input[ BUFFER_SIZE ];
+    fgets( input, BUFFER_SIZE, stdin );
 
     int fd = open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0644 );
     write( fd, input, strlen( input ) );
@@ -58,9 +59,9 @@ void testFileCalls() {
 
     printf( "Ваша строка сохранена в файл '%s'.\n", filename );
 
-    char output[ bufferSize ];
+    char output[ BUFFER_SIZE ];
     fd = open( filename, O_RDONLY );
-    int length = read( fd, output, bufferSize );
+    int length = read( fd, output, BUFFER_SIZE );
 
     puts( "Вот что удалось прочитать из этого файла (должна быть та же строка):" );
     output[ length ] = 0;
