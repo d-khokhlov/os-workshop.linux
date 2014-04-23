@@ -47,7 +47,7 @@ void testFileCalls() {
     const int bufferSize = 100;
     char *filename = "input.txt";
 
-    puts( "Input one short line of text:" );
+    puts( "Введите строку:" );
 
     char input[ bufferSize ];
     fgets( input, bufferSize, stdin );
@@ -56,17 +56,17 @@ void testFileCalls() {
     write( fd, input, strlen( input ) );
     close( fd );
 
-    printf( "Your text is saved to '%s'.\n", filename );
+    printf( "Ваша строка сохранена в файл '%s'.\n", filename );
 
     char output[ bufferSize ];
     fd = open( filename, O_RDONLY );
     int length = read( fd, output, bufferSize );
 
-    puts( "Here what we can read from this file:" );
+    puts( "Вот что удалось прочитать из этого файла (должна быть та же строка):" );
     output[ length ] = 0;
     fputs( output, stdout );
 
-    puts( "Let's try to rewind and read the first character again:" );
+    puts( "Попробуем вернуться в начало файла и снова прочитать первый символ:" );
     lseek( fd, 0, SEEK_SET );
     read( fd, output, 1 );
     output[ 1 ] = 0;
@@ -77,7 +77,7 @@ void testFileCalls() {
     struct stat info;
     stat( filename, &info );
 
-    printf( "This file has UID %u, GID %u and size %li.\n", info.st_uid, info.st_gid, info.st_size );
+    printf( "Данный файл имеет UID %u, GID %u. Его размер в байтах: %li.\n", info.st_uid, info.st_gid, info.st_size );
 }
 
 void ls() {
@@ -93,35 +93,35 @@ void testFsCalls() {
 
     char *dirname = "some-test-dir";
 
-    printf( "Let's create directory '%s'.\n", dirname );
+    printf( "Создадим директорию '%s'.\n", dirname );
     mkdir( dirname, 0777 );
 
-    printf( "Here what we have:\n" );
+    printf( "Вот, что получилось:\n" );
     ls();
 
-    printf( "Now let's delete this directory.\n" );
+    printf( "Теперь удалим эту директорию.\n" );
     rmdir( dirname );
 
-    printf( "And here what we have now:\n" );
+    printf( "Вот, что получилось теперь:\n" );
     ls();
 
     char *filename = "some-test-file";
     char *linkname = "some-test-link";
 
-    printf( "Now lets create file '%s'.\n", filename );
+    printf( "Теперь создадим файл '%s'.\n", filename );
     close( open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0644 ) );
 
-    printf( "And link it with name '%s'.\n", linkname );
+    printf( "И создадим ссылку на него с именем '%s'.\n", linkname );
     link( filename, linkname );
 
-    printf( "We got this (pay attention to the second column):\n" );
+    printf( "Получили следующее (обратим внимание на второй столбец):\n" );
     ls();
 
-    printf( "Let's unlink original name first:\n" );
+    printf( "Сначала удалим (unlink) исходное имя файла:\n" );
     unlink( filename );
     ls();
 
-    printf( "And now unlink second (link) name:\n" );
+    printf( "А теперь удалим второе имя файла (ссылку):\n" );
     unlink( linkname );
     ls();
 }
@@ -130,27 +130,28 @@ void testOtherCalls() {
 
     char *filename = "temp-file-for-chmod-test";
 
-    printf( "Let's go to '/tmp':\n" );
+    printf( "Перейдем в '/tmp':\n" );
     chdir( "/tmp" );
     ls();
 
-    printf( "Now let's create file '%s' here with minimal permissions:\n", filename );
+    printf( "Создадим здесь файл '%s' с минимальным уровнем доступа:\n", filename );
     close( open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0400 ) );
     ls();
 
-    printf( "And promote it's permissions:\n" );
+    printf( "Теперь расширим уровень доступа для этого файла:\n" );
     chmod( filename, 0777 );
     ls();
 
     unlink( filename );
 
-    printf( "And now let's fork child process\nthat will print current time every second.\nPress ENTER when ready.\nTo kill child process press ENTER again.\n");
+    printf( "Теперь создадим (fork) дочерний процесс,\nкоторый каждую секунду будет выводить текущую метку времени.\n" );
+    printf( "Нажмите ENTER, когда будете готовы.\nЧтобы завершить этот дочерний процесс, нажмите ENTER еще раз.\n");
     getchar();
 
     int pid = fork();
     if ( pid == 0 ) {
         while ( 1 ) {
-            printf( "Current timestamp: %li\n", time( NULL ) );
+            printf( "%li\n", time( NULL ) );
             sleep( 1 );
         }
         exit( 0 );
@@ -158,27 +159,27 @@ void testOtherCalls() {
 
     getchar();
     kill( pid, SIGKILL );
-    printf( "Child process killed.\n" );
+    printf( "Дочерний процесс завершен.\n" );
 }
 
 int main( int argc, char **argv )
 {
-    printf( "\nTesting process management calls\n\n" );
+    printf( "\nДемонстрация системных вызовов управления процессами\n\n" );
     testProcessCalls();
-    printf( "\n(press ENTER to continue)\n" );
+    printf( "\n(для продолжения нажмите ENTER)\n" );
     getchar();
 
-    printf( "\nTesting files IO calls\n\n" );
+    printf( "\nДемонстрация системных вызовов файлового ввода/вывода\n\n" );
     testFileCalls();
-    printf( "\n(press ENTER to continue)\n" );
+    printf( "\n(для продолжения нажмите ENTER)\n" );
     getchar();
 
-    printf( "\nTesting filesystem management calls\n\n" );
+    printf( "\nДемонстрация системных вызовов управления файловой системой\n\n" );
     testFsCalls();
-    printf( "(press ENTER to continue)\n" );
+    printf( "(для продолжения нажмите ENTER)\n" );
     getchar();
 
-    printf( "\nTesting other system calls\n\n" );
+    printf( "\nДемонстрация прочих системных вызовов\n\n" );
     testOtherCalls();
 
     return 0;
