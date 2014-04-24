@@ -49,7 +49,7 @@ int main( int argc, char **argv )
                 continue;
             }
 
-            // Если получена команда 'exit', выйти
+            // Если получена команда 'exit', выйти (со статусом успеха)
             if ( strcmp( parameters[ 0 ], "exit" ) == 0 ) {
                 return 0;
             }
@@ -66,19 +66,19 @@ int main( int argc, char **argv )
                 // Закрыть stdout (дескриптор 1 становится свободным)
                 close( 1 );
 
-                // Создать копию дескриптора входа (write end) канала.
+                // Создать копию дескриптора входа канала (write end).
                 // В качестве копии береться минимальный свободный дескриптор
                 // (в данном случае 1), таким образом stdout связывается с входом канала.
                 dup( pipeFds[ 1 ] );
 
                 // Закрыть первоначальный дескриптор входа канала.
-                // Иначе канал никогда не выдаст EOF.
+                // Иначе канал не достигнет EOF.
                 close( pipeFds[ 1 ] );
 
             // Если текущая команда последняя, но не единственная
             } else if ( commandIndex > 0 ) {
 
-                // Восстановить оригинальный дескриптор stdout
+                // Восстановить оригинальный stdout
                 close( 1 );
                 dup( outFd );
             }
@@ -124,7 +124,7 @@ int main( int argc, char **argv )
             // Создать дочерний процесс для выполнения текущей команды
             if ( fork() == 0 ) {
 
-                // В дочернем процессе
+                // Дочерний процесс
 
                 // Если задано перенаправление ввода
                 if ( inputFilename != NULL ) {
@@ -150,44 +150,53 @@ int main( int argc, char **argv )
                     open( outputFilename, O_CREAT | O_TRUNC | O_WRONLY, 0644 );
                 }
 
-                // Execute command in child process
+                // Загрузить исполняемый файл команды, передав ему параметры
                 execvp( parameters[ 0 ], parameters );
 
-                // We can reach here only if command executable
-                // wasn't load into this process, assume bad command
+                // До этого места исполнение может дойти, только если не удастся
+                // загрузить файл команды (если удасться - образ памяти текущего
+                // процесса будет полностью заменен, включая код, и этих строк уже
+                // просто не будет в памяти процесса). Считаем, что была задана неверная
+                // команда, и выводим соответствующее сообщение.
                 fprintf( stderr, "error: unknown command '%s'\n", parameters[ 0 ] );
 
-                // Exit child process manualy to prevent parent process code execution.
+                // Завершить дочерний прооцесс (со статусом ошибки), иначе будeт исполнен
+                // последующий код родительского процесса.
                 return 1;
-            } // конец дочернего процесса
+            } // Конец дочернего процесса
 
-            // Parent process continue
+            // Продолжение родительского процесса
 
-            // If this was not the last command
+            // Если это была не последняя команда
             if ( commands[ commandIndex + 1 ] != NULL ) {
 
-                // Connect read end of pipe to stdin for the next command
+                // Закрыть stdin (дескриптор 0 становится свободным)
                 close( 0 );
+
+                // Создать копию дескриптора выхода канала (read end).
+                // В качестве копии береться минимальный свободный дескриптор
+                // (в данном случае 0), таким образом stdin связывается с выходом канала.
                 dup( pipeFds[ 0 ] );
 
-                // Close created pipe read end file descriptor.
-                // Otherwise pipe will won't terminate correctly.
+                // Закрыть первоначальный дескриптор выхода канала.
+                // Иначе канал не достигнет EOF.
                 close( pipeFds[ 0 ] );
 
-            // If this was last but not single command
+            // Если это была последняя, но не единственная команда
             } else if ( commandIndex > 0 ) {
 
-                // Restore original stdin
+                // Восстановить оригинальный stdin
                 close( 0 );
                 dup( inFd );
             }
 
-        } // commands loop end
+        } // Конец цикла команд
 
-        // Wait for all child processes to exit
+        // Дождаться завершения всех дочерних процессов
         while ( wait( NULL ) > 0 );
 
-    } // main loop end
+    } // Конец главного цикла
 
+    // Выйти (со статусом успеха)
     return 0;
 }
