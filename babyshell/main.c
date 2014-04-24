@@ -8,28 +8,23 @@
 
 int main( int argc, char **argv )
 {
-    char *prompt = "> ";
-    char *spaces = " \t\n\r\v\f";
-    char input[ BUFFER_SIZE ] = "";
-    char *commands[ BUFFER_SIZE ];
-    char *parameters[ BUFFER_SIZE ];
-    int inFd, outFd, pipeFds[ 2 ];
+    // Создать копии дескрипторов stdin (0) и stdout (1),
+    // чтобы можно было восстановить их после.
+    int inFd = dup( 0 );
+    int outFd = dup( 1 );
 
-    // Duplicate input (0) and output (1) file descriptors
-    // to be able to restore them later
-    inFd = dup( 0 );
-    outFd = dup( 1 );
-
-    // Main loop
+    // Главный цикл
     while ( 1 ) {
 
-        // Print prompt
-        printf( "%s", prompt );
+        // Вывести приглашение
+        printf( "%s", "> " );
 
-        // Read command line from user
+        // Прочитать командную строку пользователя
+        char input[ BUFFER_SIZE ] = "";
         fgets( input, BUFFER_SIZE, stdin );
 
-        // Split command line into commands separated by '|' character
+        // Разбить введенную строку на отдельные команды, разделенные символом '|'
+        char *commands[ BUFFER_SIZE ];
         commands[ 0 ] = strtok( input, "|" );
         int commandIndex = 0;
         while ( commands[ commandIndex ] != NULL ) {
@@ -37,100 +32,121 @@ int main( int argc, char **argv )
             commands[ commandIndex ] = strtok( NULL, "|" );
         }
 
-        // Handle each command
+        // Параметры команды (нулевой элемент - сама команда)
+        char *parameters[ BUFFER_SIZE ];
+
+        // Обработать каждую команду
         for ( commandIndex = 0; commands[ commandIndex ] != NULL; commandIndex++ ) {
 
-            // Extract command name
+            // Пробельные символы, которыми разделяются параметры
+            char *spaces = " \t\n\r\v\f";
+
+            // Выделить имя команды (исполняемого файла)
             parameters[ 0 ] = strtok( commands[ commandIndex ], spaces );
 
-            // Handle empty command
+            // Если команда пустая, перейти к следующей
             if ( parameters[ 0 ] == NULL ) {
                 continue;
             }
 
-            // Handle 'exit' command
+            // Если получена команда 'exit', выйти
             if ( strcmp( parameters[ 0 ], "exit" ) == 0 ) {
                 return 0;
             }
 
-            // If this is not the last command
+            // Дескрипторы канала для передачи ввода/вывода между командами
+            int pipeFds[ 2 ];
+
+            // Если текущая команда не последняя
             if ( commands[ commandIndex + 1 ] != NULL ) {
 
-                // Create pipe to use between this and next command
+                // Создать канал для текущей и следующей команд
                 pipe( pipeFds );
 
-                // Connect write end of pipe to stdout
+                // Закрыть stdout (дескриптор 1 становится свободным)
                 close( 1 );
+
+                // Создать копию дескриптора входа (write end) канала.
+                // В качестве копии береться минимальный свободный дескриптор
+                // (в данном случае 1), таким образом stdout связывается с входом канала.
                 dup( pipeFds[ 1 ] );
 
-                // Close created pipe write end file descriptor.
-                // Otherwise pipe will won't terminate correctly.
+                // Закрыть первоначальный дескриптор входа канала.
+                // Иначе канал никогда не выдаст EOF.
                 close( pipeFds[ 1 ] );
 
-            // If this is last but not single command
+            // Если текущая команда последняя, но не единственная
             } else if ( commandIndex > 0 ) {
 
-                // Restore original stdout
+                // Восстановить оригинальный дескриптор stdout
                 close( 1 );
                 dup( outFd );
             }
 
-            // Filenames for input/output redirect will be stored here. NULL - means no redirect.
+            // Имена файлов для перенаправления ввода/вывода.
+            // NULL означает, что соответствующего перенаправления нет.
             char *inputFilename = NULL;
             char *outputFilename = NULL;
 
-            // Extract command parameters
+            // Индекс элемента массива для сохранения следующего параметра команды
             int parameterIndex = 1;
+
+            // Извлечь параметры команды по одному
             while( ( parameters[ parameterIndex ] = strtok( NULL, spaces ) ) != NULL ) {
 
-                // Check if this parameter is input/output redirect
+                // Проверить, является ли данный параметр перенаправлением ввода/вывода
                 switch ( parameters[ parameterIndex ][ 0 ] ) {
 
-                    // If input redirect
+                    // Если это перенаправление ввода
                     case '<':
 
-                        // Store filename excluding first '<' character
+                        // Сохранить имя файла исключая символ '<'
                         inputFilename = parameters[ parameterIndex ] + 1;
                         break;
 
-                    // If output redirect
+                    // Если это перенаправление вывода
                     case '>':
 
-                        // Store filename excluding first '>' character
+                        // Сохранить имя файла исключая символ '>'
                         outputFilename = parameters[ parameterIndex ] + 1;
                         break;
 
-                    // If no redirect (usual command parameter)
+                    // Если это не перенаправление (обычный параметр)
                     default:
 
-                        // Increase index so that this parameter won't be overwritten
-                        // during next iteration (as it will in case of redirect)
+                        // Увеличить индекс в массиве параметров, чтобы текущий параметр
+                        // не был переписан на следующей итерации (как это происходит с
+                        // перенаправлениями ввода/вывода)
                         parameterIndex++;
                 }
-            } // parameter extraction loop end
+            } // Конец цикла извлечения параметров
 
-            // Fork process to execute current command
+            // Создать дочерний процесс для выполнения текущей команды
             if ( fork() == 0 ) {
 
-                // Child process
+                // В дочернем процессе
 
-                // If input redirect specified
+                // Если задано перенаправление ввода
                 if ( inputFilename != NULL ) {
 
-                    // Close stdin (file descriptor 0)
+                    // Закрыть stdin (дескриптор 0 становится свободным)
                     close( 0 );
 
-                    // Open input file (will use descriptor 0 as it is minimal available)
+                    // Открыть заданный файл на чтение. При этом занимается
+                    // минимальный свободный дескриптор (в данном случае 0),
+                    // таким образом stdin связывается с заданным файлом.
                     open( inputFilename, O_RDONLY );
                 }
 
-                // If output redirect specified
+                // Если задано перенаправление вывода
                 if ( outputFilename != NULL ) {
 
-                    // Close stdout (file descriptor 1)
+                    // Закрыть stdout (дескриптор 1 становится свободным)
                     close( 1 );
 
-                    // Open output file (will use descriptor 1 as it is minimal available)
+                    // Создать/открыть заданный файл на запись. При этом занимается
+                    // минимальный свободный дескриптор (в данном случае 1),
+                    // таким образом stdout связывается с заданным файлом.
                     open( outputFilename, O_CREAT | O_TRUNC | O_WRONLY, 0644 );
                 }
 
@@ -143,7 +159,7 @@ int main( int argc, char **argv )
 
                 // Exit child process manualy to prevent parent process code execution.
                 return 1;
-            }
+            } // конец дочернего процесса
 
             // Parent process continue
 
