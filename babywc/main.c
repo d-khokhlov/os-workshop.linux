@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 void printUsageAndExit() {
+
     puts( "Usage: babywc [-l|-c] <filename>" );
 
     // Выйти со статусом ошибки
