@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     argc--;
 
     // Создать/открыть на запись выходной файл
-    int outFd = open( argv[ argc ], O_CREAT | O_TRUNC | O_WRONLY, 0644 );
+    int outFd = open( argv[ argc ], O_CREAT | O_TRUNC | O_WRONLY, 0666 );
 
     // Для каждого входного файла (нулевой параметр пропускаем,
     // т.к. это имя программы, а не входного файла)

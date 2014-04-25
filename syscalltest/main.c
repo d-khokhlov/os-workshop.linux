@@ -53,7 +53,7 @@ void testFileCalls() {
     char input[ BUFFER_SIZE ];
     fgets( input, BUFFER_SIZE, stdin );
 
-    int fd = open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0644 );
+    int fd = open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0666 );
     write( fd, input, strlen( input ) );
     close( fd );
 
@@ -110,7 +110,7 @@ void testFsCalls() {
     char *linkname = "some-test-link";
 
     printf( "Теперь создадим файл '%s'.\n", filename );
-    close( open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0644 ) );
+    close( open( filename, O_CREAT | O_TRUNC | O_WRONLY, 0666 ) );
 
     printf( "И создадим ссылку на него с именем '%s'.\n", linkname );
     link( filename, linkname );
