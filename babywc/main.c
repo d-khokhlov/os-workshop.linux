@@ -55,7 +55,7 @@ int main(int argc, char **argv)
             filename = argv[ argIndex ];
             break;
         }
-    }
+    } // Конец цикла параметров
 
     // Если имя файла не было получено, вывести usage и выйти
     if ( filename == NULL ) {
