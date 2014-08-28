@@ -62,5 +62,5 @@ int main(int argc, char **argv)
     close( outFd );
 
     // Выйти со статусом успеха
-	return 0;
+    return 0;
 }
